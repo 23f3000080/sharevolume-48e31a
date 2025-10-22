@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aptiv - Common Stock Shares Outstanding</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 50px; }
+        .result { border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; background-color: #ffffff; }
+        h1 { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="share-entity-name">Aptiv</h1>
+        <div class="result">
+            <h2>Max Shares Outstanding</h2>
+            <p>Value: <span id="share-max-value">N/A</span></p>
+            <p>Fiscal Year: <span id="share-max-fy">N/A</span></p>
+            <h2>Min Shares Outstanding</h2>
+            <p>Value: <span id="share-min-value">N/A</span></p>
+            <p>Fiscal Year: <span id="share-min-fy">N/A</span></p>
+        </div>
+    </div>
+    <script>
+        async function fetchData(cik) {
+            const response = await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/dei/EntityCommonStockSharesOutstanding.json`, {
+                headers: { 'User-Agent': 'YourAppName/1.0' }
+            });
+            const data = await response.json();
+            return data;
+        }
+
+        function updatePage(data) {
+            const entityName = data.entityName;
+            const max = data.max;
+            const min = data.min;
+            document.getElementById('share-entity-name').innerText = entityName;
+            document.getElementById('share-max-value').innerText = max.val;
+            document.getElementById('share-max-fy').innerText = max.fy;
+            document.getElementById('share-min-value').innerText = min.val;
+            document.getElementById('share-min-fy').innerText = min.fy;
+        }
+
+        async function main() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const cik = urlParams.get('CIK') || '0001521332';
+            const data = await fetchData(cik);
+            const filteredData = data.units.shares.filter(entry => entry.fy > '2020' && !isNaN(entry.val));
+            const max = filteredData.reduce((prev, current) => (prev.val > current.val) ? prev : current);
+            const min = filteredData.reduce((prev, current) => (prev.val < current.val) ? prev : current);
+            const result = {
+                entityName: data.entityName,
+                max: { val: max.val, fy: max.fy },
+                min: { val: min.val, fy: min.fy }
+            };
+            updatePage(result);
+        }
+
+        main();
+    </script>
+</body>
+</html>
